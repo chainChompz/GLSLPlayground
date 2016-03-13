@@ -1,0 +1,782 @@
+/* 3D rotating Cube */
+---------------------------------
+
+//<!--
+precision mediump float;
+varying vec3 vColor;
+void main(void) {
+	gl_FragColor = vec4(vColor, 1.);
+}
+//-->
+
+
+
+
+
+/* Trippy Water Effect */
+---------------------------------
+
+//<!--
+precision mediump float;
+
+uniform vec2 mouse;
+uniform float time;
+uniform vec2 resolution;
+varying vec2 surfacePosition;
+
+
+vec3 LIGHT_DIR = normalize(vec3(0,1.1,-0.8));
+vec3 CAMERA_POS = vec3(0.0, 0.8, -1.5);
+
+mat3 rotate3d(vec3 axis, float angle) {
+axis = normalize(axis);
+float s = sin(angle);
+float c = cos(angle);
+float oc = 1.0 - c;
+
+return mat3(oc*axis.x*axis.x+c, oc*axis.x*axis.y - axis.z*s, oc*axis.z*axis.x + axis.y*s,
+oc*axis.x*axis.y+axis.z*s, oc*axis.y*axis.y+c, oc * axis.y*axis.z - axis.x*s,
+oc*axis.z*axis.x-axis.y*s, oc*axis.y*axis.z+axis.x*s, oc*axis.z*axis.z+c);
+}
+
+float de(in vec3 p) {
+p = rotate3d(vec3(sin(time*0.25),sin(time*0.125),sin(time*0.1125)),time)*p;
+
+for(int i = 0; i < 3; i++) {
+p *= normalize(p);
+p = rotate3d(vec3(sin(time*0.25),sin(time*0.125),sin(time*0.1125)),time+sin(time*0.321)+cos(float(i)+time*0.231))*p;
+}
+
+return length(p) - 0.1;
+}
+
+vec3 ray_march(in vec3 p, in vec3 dir) {
+float td = 0.0;
+for(int i = 0; i < 12; i++) {
+td += de(p + td*dir);
+}
+return p + td*dir;
+}
+
+vec3 normal(in vec3 p) {
+const vec3 E = vec3(0.00001, 0.0, 0.0);
+return normalize(vec3(
+de(p+E.xyy)-de(p-E.xyy),
+de(p+E.yxy)-de(p-E.yxy),
+de(p+E.yyx)-de(p-E.yyx)
+));
+}
+
+const float SHININESS = 1.1;
+vec3 view = normalize(vec3(1.));
+vec3 specular_reflection(in vec3 normal, in vec3 dir) {
+if (dot(normal, LIGHT_DIR) < 0.0) {
+return vec3(0.0, 0.0, 0.0);
+}
+else {
+return vec3(1.)*pow(dot(reflect(-LIGHT_DIR, normal), view), SHININESS);
+}
+}
+
+float diffuse_factor(in vec3 normal) {
+return 2.*clamp(dot(normal, LIGHT_DIR), 0.1, 1.0);
+}
+
+vec4 color(in vec3 p) {
+vec3 norm = normal(p);
+return vec4(norm*norm,1.)*diffuse_factor(p);
+}
+
+void main(void) {
+vec2 screen = 2.*(gl_FragCoord.xy / resolution.xy * vec2(1., resolution.y/resolution.x) - vec2(0.5));
+
+vec3 dir = normalize(vec3(screen.xy, 0.9));
+vec3 p = CAMERA_POS;
+
+vec3 end = ray_march(p, dir);
+
+gl_FragColor = 2.*(color(end)+vec4(specular_reflection(normal(end), dir),0.)/2.5)/(distance(end,p)-0.5);
+}
+//-->
+
+
+
+/* Time Travel */
+---------------------------------
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+// YOU'RE ABOUT
+// TO HACK TIME,
+// ARE YOU SURE?
+//  >YES   NO
+
+uniform float time;
+uniform vec2 mouse;
+uniform vec2 resolution;
+
+void glow(float d) {
+	float br = 0.005 * resolution.y;
+	gl_FragColor.rgb += vec3(0.3, 0.15, 0.45) * br / d;
+}
+
+void line( vec2 a, vec2 l ) {
+	l.x *= resolution.y/resolution.x;
+	l += 0.5;
+	l *= resolution;
+	
+	vec2 P = gl_FragCoord.xy;
+	a.x *= resolution.y/resolution.x;
+	a += 0.5;
+	a *= resolution;
+	
+	vec2 aP = P-a;
+	vec2 al = l-a;
+	vec3 al3 = vec3(al, 1.0);
+	vec3 aP3 = vec3(aP, 1.1);
+	//float q = length(dot(aP,al))/length(al);
+	float q = length(cross(aP3,al3))/length(al3);
+	
+	float d = q;
+	if ( dot(al, aP) <= 0.0 ) { // before start
+               d = distance(P, a);
+	}
+        else if ( dot(al, al) <= dot(al, aP) ) { // after end
+               d = distance(P, l);
+	}
+	glow(d);
+}
+
+void point(vec2 a) {
+	a.x *= resolution.y/resolution.x;
+	a += 0.5;
+	a *= resolution;
+
+	vec2 P = gl_FragCoord.xy;
+	float d = distance(P, a);
+	glow(d);
+}
+
+float rand(int seed) {
+	return fract(sin(float(seed)*15.234234) + sin(float(seed)*4.3456342) * 372.4532);
+}
+
+void main( void ) {
+	gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+
+	// Horizontal grid lines
+	float y = 0.0;
+	for (int l=1; l<13; l++) {
+		y = -1.0/(0.6 * sin(time * 0.73) + float(l)*1.2) + 0.25;
+		line(vec2(-2.0, y), vec2(2.0, y));
+	}
+	
+	// Perpendicular grid lines
+	for (int l=-30; l<31; l++) {
+		float x = float(l) + fract(time * 3.25);
+		line(vec2(x * 0.025, y), vec2(x, -1.0));
+	}
+	
+	// Starfield
+	for (int l=1; l<70; l++) {
+		float sx = (fract(rand(l+342) + time * (0.002 + 0.01*rand(l)))-0.5) * 3.0;
+		float sy = y + 0.4 * rand(l+8324);
+		point(vec2(sx,sy));
+	}
+}
+
+
+
+/* Hypnotize */
+---------------------------------
+
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+#extension GL_OES_standard_derivatives : enable
+
+uniform float time;
+uniform vec2 mouse;
+uniform vec2 resolution;
+
+float sintime()
+{
+	return mod(time, 6.2831583);
+}
+
+float waves(float pos, float speed, float size)
+{
+	return pow((sin(pos / size + time * (speed / size)) + 1.) / 2., 2.);
+}
+
+	       
+void main(void)
+{
+	float fillred = waves(distance(gl_FragCoord.xy, resolution.xy / 2.), -200., 10.);
+	float fillblue = waves(distance(gl_FragCoord.xy, resolution.xy / 2.), -250., 20.);
+	
+	gl_FragColor = vec4(fillred, fillblue, 0., 1.);
+}
+
+
+
+
+
+
+/* Cells */
+---------------------------------
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform float time;
+uniform vec2 mouse;
+uniform vec2 resolution;
+
+float tt = time * 2.0;
+vec2 random2f(vec2 p) {
+	vec2 tmp = fract(vec2(sin(p.x * 797. + p.y * 311.), cos(p.x * 43. + p.y * 4111.)));
+	return vec2(.5+.5*sin(tmp.x*tt + p.y),.5+.5*cos(tmp.y*tt + p.x));
+}
+
+float voronoi( in vec2 x )
+{
+    vec2 p = vec2(floor( x ));
+    vec2 f = fract( x );
+
+    float res = 9.0;
+    const float s = 1.0;	
+    for( float j=-s; j<=s; j++ ) {
+        for( float i=-s; i<=s; i++ ) {
+		for(int a=0; a<=8; a++) {
+	    vec2 b = vec2(i, j);
+	    vec2  r = b - f + random2f(b + p);
+	    float d = length(r);
+	    res = min(res, d);
+		}
+        }
+    }
+    return res;
+}
+
+void main( void ) {
+
+	vec2 p = gl_FragCoord.xy / resolution.xy;
+	p.x *= resolution.x / resolution.y;
+	vec2 q = 2.0 * p - 1.0;
+	
+	float col = voronoi(q * 9.0);
+ 	      col = pow(col,0.9);
+	gl_FragColor = vec4(1.-col,col-0.5,col-0.1, 1.0);
+}
+
+
+
+/* Particle Vaccuum */
+---------------------------------
+
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+// rakesh@picovico.com : www.picovico.com
+
+uniform float time;
+uniform vec2 mouse;
+uniform vec2 resolution;
+
+const float fRadius = 0.1;
+
+void main(void)
+{
+    vec2 uv = -1.0 + 2.0*gl_FragCoord.xy / resolution.xy;
+    uv.x *=  resolution.x / resolution.y;
+    
+    vec3 color = vec3(0.0);
+
+        // bubbles
+    for( int i=0; i<64; i++ )
+    {
+            // bubble seeds
+        float pha = tan(float(i)*6.+1.0)*0.5 + 0.5;
+        float siz = pow( cos(float(i)*2.4+5.0)*0.5 + 0.5, 4.0 );
+        float pox = cos(float(i)*3.55+4.1) * resolution.x / resolution.y;
+        
+            // buble size, position and color
+        float rad = fRadius + sin(float(i))*0.12+0.08;
+        vec2  pos = vec2( pox+sin(time/30.+pha+siz), -1.0-rad + (2.0+2.0*rad)
+                         *mod(pha+0.1*(time/5.)*(0.2+0.8*siz),1.0)) * vec2(1.0, 1.0);
+        float dis = length( uv - pos );
+        vec3  col = mix( vec3(0.7, 0.2, 0.8), vec3(0.2,0.8,0.6), 0.5+0.5*sin(float(i)*sin(time*pox*0.03)+1.9));
+        
+            // render
+        color += col.xyz *(1.- smoothstep( rad*(0.65+0.20*sin(pox*time)), rad, dis )) * (1.0 - cos(pox*time));
+    }
+
+    gl_FragColor = vec4(color,1.0);
+}
+
+/* Lazer Show */
+---------------------------------
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+#extension GL_OES_standard_derivatives : enable
+
+uniform float time;
+uniform vec2 mouse;
+uniform vec2 resolution;
+
+void main( void ) {
+
+	vec2 position 	= ( gl_FragCoord.xy / resolution.xy );
+	position 	*= resolution/min(resolution.x,resolution.y);
+
+	vec3 color = vec3(
+		fract(position.x / position.y * time ),
+		fract(position.y / position.x * time), 
+		cos(time)
+		);
+	
+
+	gl_FragColor = vec4( color, 1.0 );
+
+}
+
+
+
+
+
+
+/* Audio Waves */
+---------------------------------
+
+// Guyver
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+
+uniform float time;
+uniform float lowFreq;
+uniform vec2 resolution;
+
+
+vec3 SUN_1 = vec3(0.0,0.5,1.0);
+vec3 SUN_2 = vec3(1.0,0.0,0.0);
+vec3 SUN_3 = vec3(0.1,1.0,0.753);
+vec3 SUN_4 = vec3(0.6,0.8,0.0);
+
+
+float sigmoid(float x)
+{
+	return 2./(1. + exp2(-x)) - 1.;
+}
+
+
+void main( void ) 
+{
+	vec2 position = gl_FragCoord.xy;
+	vec2 aspect = vec2(resolution/resolution );
+	position -= 0.5*resolution;
+	vec2 position2 = 0.5 + (position-0.5)/resolution*3.;
+	
+	float filter = sigmoid(pow(2.,7.5)*(length((position/resolution + 0.5)*aspect) - 0.015))*0.5 +0.5 +lowFreq*lowFreq;
+	position = mix(position, position2, filter) - 0.5;
+
+	vec3 color = vec3(0.);
+	float angle = atan(position.y,position.x);
+	float d = length(position);
+	
+	color += 0.08/length(vec2(.05,2.0*position.y+sin(position.x*10.+time*-6.)))*SUN_3; 
+	color += 0.07/length(vec2(.06,4.0*position.y+sin(position.x*10.+time*-2.)))*SUN_1; // I'm sure there's an easier way to do this, this just happened to look nice and blurry.
+	color += 0.06/length(vec2(.07,8.0*position.y+sin(position.x*10.+time*2.)))*SUN_2;
+	color += 0.05/length(vec2(.08,16.0*position.y+sin(position.x*10.+time*6.)))*SUN_3;
+	color += 0.04/length(vec2(.09,32.0*position.y+sin(position.x*10.+time*10.)))*SUN_4;
+	
+	gl_FragColor = vec4(color, 1.0);
+}
+
+
+
+
+
+/* Fields of Green */
+---------------------------------
+
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+/// Need a bird or a spaceship... ;-)    - Harley
+uniform float time;
+uniform vec2 mouse;
+uniform vec2 resolution;
+
+float PI  = 4.0*atan(1.0);
+
+vec3 sunLight  = normalize( vec3(  0.35, 0.2,  0.3 ) );
+vec3 cameraPos;
+vec3 sunColour = vec3(1.0, .75, .6);
+const mat2 rotate2D = mat2(1.932, 1.623, -1.623, 1.952);
+float gTime = 0.0;
+
+//--------------------------------------------------------------------------
+// Noise functions...
+float Hash( float n )
+{
+    return fract(sin(n)*43758.5453123);
+}
+
+//--------------------------------------------------------------------------
+float Hash(vec2 p)
+{
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+}
+//----------------------------------------------------------------------
+float Noise( in vec2 x )
+{
+    vec2 p = floor(x);
+    vec2 f = fract(x);
+    f = f*f*(3.0-2.0*f);
+    float n = p.x + p.y*57.0;
+    float res = mix(mix( Hash(n+  0.0), Hash(n+  1.0),f.x),
+                    mix( Hash(n+ 57.0), Hash(n+ 58.0),f.x),f.y);
+    return res;
+}
+
+vec2 Voronoi( in vec2 x )
+{
+    vec2 p = floor( x );
+    vec2 f = fract( x );
+    float res=100.0,id;
+    for( int j=-1; j<=1; j++ )
+    for( int i=-1; i<=1; i++ )
+    {
+        vec2 b = vec2( float(i), float(j) );
+        vec2 r = vec2( b ) - f  + Hash( p + b );
+        float d = dot(r,r);
+        if( d < res )
+        {
+            res = d;
+            id  = Hash(p+b);
+        }            
+    }
+    return vec2(max(.4-sqrt(res), 0.0),id);
+}
+
+
+//--------------------------------------------------------------------------
+vec2 Terrain( in vec2 p)
+{
+    float type = 0.0;
+    vec2 pos = p*0.003;
+    float w = 40.0;
+    float f = .0;
+    for (int i = 0; i < 3; i++)
+    {
+        f += Noise(pos) * w;
+        w = w * 0.62;
+        pos *= 1.5;
+    }
+
+    return vec2(f, type);
+}
+
+//--------------------------------------------------------------------------
+vec2 Map(in vec3 p)
+{
+    vec2 h = Terrain(p.xz);
+    return vec2(p.y - h.x, h.y);
+}
+
+//--------------------------------------------------------------------------
+float FractalNoise(in vec2 xy)
+{
+    float w = .7;
+    float f = 0.0;
+
+    for (int i = 0; i < 3; i++)
+    {
+        f += Noise(xy) * w;
+        w = w*0.6;
+        xy = 2.0 * xy;
+    }
+    return f;
+}
+
+//--------------------------------------------------------------------------
+// Grab all sky information for a given ray from camera
+vec3 GetSky(in vec3 rd)
+{
+    float sunAmount = max( dot( rd, sunLight), 0.0 );
+    float v = pow(1.0-max(rd.y,0.0),6.);
+    vec3  sky = mix(vec3(.1, .2, .3), vec3(.32, .32, .32), v);
+    sky = sky + sunColour * sunAmount * sunAmount * .25;
+    sky = sky + sunColour * min(pow(sunAmount, 800.0)*1.5, .3);
+    return clamp(sky, 0.0, 1.0);
+}
+
+//--------------------------------------------------------------------------
+// Merge grass into the sky background for correct fog colouring...
+vec3 ApplyFog( in vec3  rgb, in float dis, in vec3 dir)
+{
+    float fogAmount = clamp(dis*dis* 0.0000012, 0.0, 1.0);
+    return mix( rgb, GetSky(dir), fogAmount );
+}
+
+//--------------------------------------------------------------------------
+vec3 DE(vec3 p)
+{
+    float base = Terrain(p.xz).x - 1.9;
+    float height = Noise(p.xz*2.0)*.75 + Noise(p.xz)*.35 + Noise(p.xz*.5)*.2;
+    //p.y += height;
+    float y = p.y - base-height;
+    y = y*y;
+    vec2 ret = Voronoi((p.xz*2.5+sin(y*4.0+p.zx*12.3)*.12+vec2(sin(time*2.3+1.5*p.z),sin(time*3.6+1.5*p.x))*y*.5));
+    float f = ret.x * .6 + y * .58;
+    return vec3( y - f*1.4, clamp(f * 1.5, 0.0, 1.0), ret.y);
+}
+
+//--------------------------------------------------------------------------
+// eiffie's code for calculating the aperture size for a given distance...
+float CircleOfConfusion(float t)
+{
+    return max(t * .04, (2.0 / resolution.y) * (1.0+t));
+}
+
+//--------------------------------------------------------------------------
+float Linstep(float a, float b, float t)
+{
+    return clamp((t-a)/(b-a),0.,1.);
+}
+
+//--------------------------------------------------------------------------
+vec3 GrassBlades(in vec3 rO, in vec3 rD, in vec3 mat, in float dist)
+{
+    float d = 0.0;
+    float f;
+    // Only calculate cCoC once is enough here...
+    float rCoC = CircleOfConfusion(dist*.3);
+    float alpha = 0.0;
+
+    vec4 col = vec4(mat*0.15, 0.0);
+
+    for (int i = 0; i < 16; i++)
+    {
+        if (col.w > .99) break;
+        vec3 p = rO + rD * d;
+
+        vec3 ret = DE(p);
+        ret.x += .5 * rCoC;
+
+        if (ret.x < rCoC)
+        {
+            alpha = (1.0 - col.y) * Linstep(-rCoC, rCoC, -ret.x);//calculate the mix like cloud density
+            f = clamp(ret.y, 0.0, 1.0);
+            // Mix material with white tips for grass...
+            vec3 gra = mix(mat, vec3(.35, .35, min(pow(ret.z, 4.0)*35.0, .35)), pow(ret.y, 9.0)*.7) * ret.y;
+            col += vec4(gra * alpha, alpha);
+        }
+        d += max(ret.x * .7, .1);
+    }
+    if(col.w < .2)
+        col.xyz = vec3(0.1, .15, 0.05);
+    return col.xyz;
+}
+
+//--------------------------------------------------------------------------
+// Calculate sun light...
+void DoLighting(inout vec3 mat, in vec3 pos, in vec3 normal, in vec3 eyeDir, in float dis)
+{
+    float h = dot(sunLight,normal);
+    mat = mat * sunColour*(max(h, 0.2)+0.2);
+}
+
+//--------------------------------------------------------------------------
+vec3 TerrainColour(vec3 pos, vec3 dir,  vec3 normal, float dis, float type)
+{
+    vec3 mat;
+    if (type == 0.0)
+    {
+        // Random colour...
+        mat = mix(vec3(0.2,.3,.2), vec3(.2,.4,.2), Noise(pos.xz*.025));
+        // Random shadows...
+        float t = FractalNoise(pos.xz * .1)+.5;
+        // Do grass blade tracing...
+        mat = GrassBlades(pos, dir, mat, dis) * t;
+        DoLighting(mat, pos, normal,dir, dis);
+    }
+    mat = ApplyFog(mat, dis, dir);
+    return mat;
+}
+
+//--------------------------------------------------------------------------
+// Home in on the surface by dividing by two and split...
+float BinarySubdivision(in vec3 rO, in vec3 rD, float t, float oldT)
+{
+    float halfwayT = 0.0;
+    for (int n = 0; n < 5; n++)
+    {
+        halfwayT = (oldT + t ) * .5;
+        if (Map(rO + halfwayT*rD).x < .05)
+        {
+            t = halfwayT;
+        }else
+        {
+            oldT = halfwayT;
+        }
+    }
+    return t;
+}
+
+//--------------------------------------------------------------------------
+bool Scene(in vec3 rO, in vec3 rD, out float resT, out float type )
+{
+    float t = 5.;
+    float oldT = 0.0;
+    float delta = 0.;
+    vec2 h = vec2(1.0, 1.0);
+    bool hit = false;
+    for( int j=0; j < 80; j++ )
+    {
+        vec3 p = rO + t*rD;
+        if (p.y < 105.0 && !hit)
+        {
+            h = Map(p); // ...Get this position's height mapping.
+
+            // Are we inside, and close enough to fudge a hit?...
+            if( h.x < 0.05)
+            {
+                // Yes! So home in on height map...
+                resT = BinarySubdivision(rO, rD, t, oldT);
+                type = h.y;
+                hit = true;
+            }else
+            {
+                // Delta ray advance - a fudge between the height returned
+                // and the distance already travelled.
+                // Compromise between speed and accuracy...
+                delta = max(0.04, 0.35*h.x) + (t*0.04);
+                oldT = t;
+                t += delta;
+            }
+        }
+    }
+
+    return hit;
+}
+
+//--------------------------------------------------------------------------
+vec3 CameraPath( float t )
+{
+
+    vec2 p = vec2(200.0 * sin(3.54*t), 200.0 * cos(8.0*t) );
+    return vec3(p.x+15.0,  12.0+sin(t*.3)*6.5, -94.0+p.y);
+} 
+
+//--------------------------------------------------------------------------
+vec3 PostEffects(vec3 rgb, vec2 xy)
+{
+    // Gamma first...
+    rgb = pow(abs(rgb), vec3(0.45));
+
+    // Then...
+    #define CONTRAST 1.2
+    #define SATURATION 1.5
+    #define BRIGHTNESS 1.1
+    rgb = mix(vec3(.5), mix(vec3(dot(vec3(.2125, .7154, .0721), rgb*BRIGHTNESS)), rgb*BRIGHTNESS, SATURATION), CONTRAST);
+    // Vignette...
+    rgb *= .4+0.5*pow(40.0*xy.x*xy.y*(1.0-xy.x)*(1.0-xy.y), 0.6 );    
+    return rgb;
+}
+
+//--------------------------------------------------------------------------
+void main(void)
+{
+    float m = (mouse.x/resolution.x)*300.0;
+    float gTime = (time*5.0+m+2352.0)*.006;
+    vec2 xy = gl_FragCoord.xy / resolution.xy;
+    vec2 uv = (-1.0 + 2.0 * xy) * vec2(resolution.x/resolution.y,1.0);
+    vec3 camTar;
+
+
+
+
+    cameraPos = CameraPath(gTime + 0.0);
+    camTar     = CameraPath(gTime + .009);
+    cameraPos.y += Terrain(CameraPath(gTime + .009).xz).x;
+    camTar.y = cameraPos.y;
+
+    float roll = .4*sin(gTime+.5);
+    vec3 cw = normalize(camTar-cameraPos);
+    vec3 cp = vec3(sin(roll), cos(roll),0.0);
+    vec3 cu = cross(cw,cp);
+    vec3 cv = cross(cu,cw);
+    vec3 dir = normalize(uv.x*cu + uv.y*cv + 1.3*cw);
+    mat3 camMat = mat3(cu, cv, cw);
+
+
+    vec3 col;
+    float distance;
+    float type;
+    if( !Scene(cameraPos, dir, distance, type) )
+    {
+        // Missed scene, now just get the sky...
+        col = GetSky(dir);
+    }
+    else
+    {
+        // Get world coordinate of landscape...
+        vec3 pos = cameraPos + distance * dir;
+        // Get normal from sampling the high definition height map
+        // Use the distance to sample larger gaps to help stop aliasing...
+        vec2 p = vec2(0.1, 0.0);
+        vec3 nor      = vec3(0.0,        Terrain(pos.xz).x, 0.0);
+        vec3 v2        = nor-vec3(p.x,    Terrain(pos.xz+p).x, 0.0);
+        vec3 v3        = nor-vec3(0.0,    Terrain(pos.xz-p.yx).x, -p.x);
+        nor = cross(v2, v3);
+        nor = normalize(nor);
+
+        // Get the colour using all available data...
+        col = TerrainColour(pos, dir, nor, distance, type);
+    }
+
+    // bri is the brightness of sun at the centre of the camera direction.
+    // Yeah, the lens flares is not exactly subtle, but it was good fun making it.
+    float bri = dot(cw, sunLight)*.75;
+    if (bri > 0.0)
+    {
+        vec2 sunPos = vec2( dot( sunLight, cu ), dot( sunLight, cv ) );
+        vec2 uvT = uv-sunPos;
+        uvT = uvT*(length(uvT));
+        bri = pow(bri, 6.0)*.8;
+
+        // glare = the red shifted blob...
+        float glare1 = max(dot(normalize(vec3(dir.x, dir.y+.3, dir.z)),sunLight),0.0)*1.4;
+        // glare2 is the yellow ring...
+        float glare2 = max(1.0-length(uvT+sunPos*.5)*4.0, 0.0);
+        uvT = mix (uvT, uv, -2.3);
+        // glare3 is a purple splodge...
+        float glare3 = max(1.0-length(uvT+sunPos*5.0)*1.2, 0.0);
+
+        col += bri * vec3(1.0, .0, .0)  * pow(glare1, 12.5)*.05;
+        col += bri * vec3(1.0, 1.0, 0.2) * pow(glare2, 2.0)*2.5;
+        col += bri * sunColour * pow(glare3, 2.0)*3.0;
+    }
+    col = PostEffects(col, xy);    
+
+
+
+    gl_FragColor=vec4(col,1.0);
+}
+
+

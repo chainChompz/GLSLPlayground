@@ -1,0 +1,138 @@
+body
+{
+	background-color: transparent;
+	overflow: hidden;
+}
+
+h1#title
+{
+	padding-top: 15px;
+	color: white;
+}
+
+div#header
+{
+	position: absolute;
+	top: 0px;
+	left: 0px;
+    margin: auto;
+    width: 90%;
+    text-align: center;
+	background-color: transparent;
+	margin-left: 5%;
+	margin-right: 5%;
+}
+div#subheader
+{
+	position: absolute;
+	top: 10%;
+	left: 0px;
+    margin: auto;
+    width: 90%;
+    text-align: center;
+	background-color: transparent;
+	margin-left: 5%;
+	margin-right: 5%;
+}
+div#mainNav ul
+{
+	position: absolute;
+	top: 0;
+	background-color: transparent;
+}
+
+div#mainNav { list-style-type: none; background-color: transparent;}
+div#mainNav li { display: inline; }
+div#mainNav li a 
+{ 
+	color: white;
+	text-shadow: rgba( 0, 0, 0, 1 ) 0px 1px 2px;
+	background-color: transparent;
+	border: solid 1px transparent;
+	border-radius: 5px;
+	line-height: 1.1em;
+	font-family: monospace;
+	font-size: 14px;
+	font-weight: bold;
+	visibility: visible;
+
+	/* transition between transparent and semi-transparent black on hover */
+	transition: background-color 500ms;
+	-webkit-transition: background-color 500ms;
+	-o-transition: background-color 500ms;
+	-moz-transition: background-color 500ms;
+	-ms-transition: background-color 500ms;
+}
+div#mainNav li a:hover 
+{ 
+  background-color: rgba(0, 0, 0, 0.5);
+  border: solid 1px rgba(128,128,128,.4);
+}
+
+
+
+#fullscreenbutton{
+	position: absolute;
+	top: 0;
+	right: 0;
+	height: 50px;
+	color: white;
+	text-shadow: rgba( 0, 0, 0, 1 ) 0px 1px 2px;
+	background-color: transparent;
+	padding: 12px;
+	margin-right: 20px;
+	border: none;
+	border-radius: 5px;
+	line-height: 1.1em;
+	font-family: monospace;
+	font-size: 14px;
+	font-weight: bold;
+	visibility: visible;
+
+	/* transition between transparent and semi-transparent black on hover */
+	transition: background-color 500ms;
+	-webkit-transition: background-color 500ms;
+	-o-transition: background-color 500ms;
+	-moz-transition: background-color 500ms;
+	-ms-transition: background-color 500ms;
+}
+
+#fullscreenbutton:hover {
+	background-color: rgba(0, 0, 0, 0.5);
+	border: solid 1px rgba(128,128,128,.4);
+}
+
+#hidecode {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 50px;
+	color: white;
+	text-shadow: rgba( 0, 0, 0, 1 ) 0px 1px 2px;
+	background-color: transparent;
+	padding: 12px;
+	margin-right: 20px;
+	border: none;
+	border-radius: 5px;
+	line-height: 1.1em;
+	font-family: monospace;
+	font-size: 14px;
+	font-weight: bold;
+	visibility: visible;
+
+	/* transition between transparent and semi-transparent black on hover */
+	transition: background-color 500ms;
+	-webkit-transition: background-color 500ms;
+	-o-transition: background-color 500ms;
+	-moz-transition: background-color 500ms;
+	-ms-transition: background-color 500ms;
+}
+
+#hidecode:hover {
+	background-color: rgba(0, 0, 0, 0.5);
+	border: solid 1px rgba(128,128,128,.4);
+}
+
+
+
+

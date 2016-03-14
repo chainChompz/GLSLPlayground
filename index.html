@@ -1,0 +1,135 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'/>
+<title></title>
+<link rel="stylesheet" href="CSS/glsl.css"/>
+<link rel="stylesheet" href="CSS/codemirror.css"/>
+<link rel="stylesheet" href="CSS/codemirror_tabs.css"/>
+<link rel="stylesheet" href="CSS/custom.css"/>
+<link rel="stylesheet" href="CSS/navigation.css"/>
+
+</head> 
+
+<body style='margin:0px' onload='main(); init();'>
+	
+
+
+
+	
+<div id="subheader">
+	<input id="fullscreenbutton" type="submit" value="FullScreen">
+	<input id="hidecode" type="submit" value="Hide Code">
+</div>
+<!-- Web GL Canvas -->
+<div class="canvas">
+	<!-- Header -->
+	<div id="header">	
+		<div id="mainNav">
+			<ul>
+			  <li><a href="">Back to Object Viewer</a></li>
+			</ul> 
+		</div>
+		<h1 id="title">GLSL Playground</h1>
+	</div>
+
+	<canvas id='webgl_canvas'
+		style='background-color: black;'>
+		<input class="FullScreenButton" type="submit" value="">
+
+	</canvas>
+		
+	<!-- Code Mirror -->
+	<div id="codeAreaWrapper">
+		<div id="shaderstatus">
+			<p id="shaderstatustext">Shaders Compiled Successfully</p>
+		</div>
+		
+		<div id="codeAreaTabs">
+			<ul id="tabs">
+			  <li><a href="#fragmentCode">Fragment Shader</a></li>
+			  <li><a href="#vertexCode">Vertex Shader</a></li>
+			</ul>
+		</div>
+		<div class="tabContent" id="vertexCode">
+			<textarea id='vertexSourceTextarea'>
+				//<!--
+				attribute vec2 position;
+				varying vec2 surfacePosition;
+
+				void main(void) {
+					gl_Position = vec4(position, 0., 1.);
+					surfacePosition=position;
+				}
+				//-->
+			</textarea>
+		</div>
+		<div class ="tabContent" id="fragmentCode">
+			<textarea id='fragmentSourceTextarea'>
+				//<!--
+				/*
+						   co3moz
+					 github.com/co3moz
+
+					 draw => for y-finite solutions
+					 drawYInfinite => for y-infinite solutions
+
+					 press left button of mouse and move for move.
+					 press right button of mouse and move for scale.
+					 press shift and left button of mouse, move a little bit will reset to default position.
+				*/
+
+				precision highp float;
+				uniform float time;
+				uniform vec2 mouse;
+				uniform vec2 resolution;
+				varying vec2 surfacePosition;
+
+				#define draw(function, r, g, b) if(distance(function(p.x - c.x), p.y - c.y) < 0.01) color = vec3(r, g, b)
+				#define drawYInfinite(function, r, g, b) if(distance(function(p.x - c.x), p.y - c.y) < abs(function(p.x - c.x) - function(p.x - c.x - 0.01))) color = vec3(r, g, b)
+				#define mouseTrack(function) if(distance(mouse.x * aspect.x, p.x) < 0.003 && function(p.x - c.x) - p.y + c.y > 0.0 && sin((c.y - p.y) * 200.0) < 0.1) color = vec3(0.5, 0.5, 0.5)
+
+				float y1(float x) {
+					return x;
+				}
+
+				float y2(float x) {
+					return sin(x);
+				}
+
+				float y3(float x) {
+					return sin(x + time);
+				}
+
+				void main(void) {
+					vec2 aspect = resolution.xy / min(resolution.x, resolution.y);
+					vec2 c = vec2(0.5) * aspect - surfacePosition * 1.5;
+					vec2 p = gl_FragCoord.xy / min(resolution.x, resolution.y);
+					vec3 color = vec3(0.0);
+					
+					draw(y1, 1.0, 1.0, 1.0); // y1
+					draw(y2, 0.0, 0.0, 1.0); // y2
+					draw(y3, 0.0, 1.0, 1.0); // y3
+					mouseTrack(y3); // mouse tracking
+					
+					if(distance(p.y, c.y) < 0.005 && sin((c.x - p.x) * 200.0) < 0.1) color = vec3(0.0, 1.0, 0.0); // horizontal
+					if(distance(p.x, c.x) < 0.005 && sin((c.y - p.y) * 200.0) < 0.1) color = vec3(1.0, 0.0, 1.0); // vertical
+					gl_FragColor = vec4(color, 1.0);
+				}
+				//-->
+			</textarea>
+		</div>
+	</div>
+</div>
+
+</body>   
+<div class="CodeMirror"> </div>
+
+<script type="text/javascript" src="ExternalLibs/codemirror.js"></script>
+<script type="text/javascript" src="ExternalLibs/glsl.js"></script>
+<script type="text/javascript" src="ExternalLibs/libs.js"></script>
+<script type="text/javascript" src="JS/codemirror_tabs.js"></script>
+<script type="text/javascript" src="JS/sandbox.js"></script>
+
+</html>

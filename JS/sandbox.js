@@ -9,7 +9,18 @@ var main=function() {
 
 	FULLSCREENBUTTON.addEventListener( 'click', 
 										function ( event ) {
-											document.body.webkitRequestFullScreen( Element.ALLOW_KEYBOARD_INPUT );
+											var elem = document.body;
+											
+											if (elem.requestFullscreen) {
+											  elem.requestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+											} else if (elem.msRequestFullscreen) {
+											  elem.msRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+											} else if (elem.mozRequestFullScreen) {
+											  elem.mozRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT);
+											} else if (elem.webkitRequestFullscreen) {
+											  elem.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+											}
+
 										}, 
 										false );
 										

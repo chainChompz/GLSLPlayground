@@ -8,6 +8,17 @@ h1#title
 {
 	padding-top: 15px;
 	color: white;
+	text-shadow: rgba( 0, 0, 0, 1 ) 0px 1px 2px;
+	background-color: transparent;
+	padding: 12px;
+	margin-right: 20px;
+	border: none;
+	border-radius: 5px;
+	line-height: 1.1em;
+	font-family: monospace;
+	font-size: 24px;
+	font-weight: bold;
+	visibility: visible;
 }
 
 div#header
